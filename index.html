@@ -1,177 +1,223 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Prosper AI Chatbot</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #f4f4f4;
-      display: flex;
-      flex-direction: column;
-      height: 100vh;
-      margin: 0;
-    }
-    #chat {
-      flex: 1;
-      overflow-y: auto;
-      padding: 20px;
-      background: #fff;
-    }
-    .message {
-      margin: 10px 0;
-      padding: 10px;
-      border-radius: 8px;
-      max-width: 70%;
-      word-wrap: break-word;
-    }
-    .user {
-      background: #daf1fc;
-      align-self: flex-end;
-      text-align: right;
-    }
-    .bot {
-      background: #e0ffe0;
-      align-self: flex-start;
-    }
-    #input {
-      display: flex;
-      padding: 10px;
-      background: #eee;
-      align-items: center;
-      gap: 10px;
-    }
-    #input input[type="text"] {
-      flex: 1;
-      padding: 10px;
-      font-size: 16px;
-    }
-    #input button {
-      padding: 10px 20px;
-      font-size: 16px;
-      cursor: pointer;
-    }
-    #input button:disabled {
-      background: #ccc;
-      cursor: not-allowed;
-    }
-    #input input[type="file"] {
-      cursor: pointer;
-    }
-    .message img {
-      max-width: 100%;
-      border-radius: 8px;
-      margin-top: 5px;
-    }
-  </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Prosper AI Chatbot</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    background: #f4f4f4;
+    margin: 0;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+  #chat {
+    flex: 1;
+    overflow-y: auto;
+    padding: 15px;
+    background: #fff;
+    display: flex;
+    flex-direction: column;
+  }
+  .message {
+    max-width: 70%;
+    margin: 8px 0;
+    padding: 12px 15px;
+    border-radius: 15px;
+    word-wrap: break-word;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  }
+  .user {
+    background: #daf1fc;
+    align-self: flex-end;
+    text-align: right;
+  }
+  .bot {
+    background: #e0ffe0;
+    align-self: flex-start;
+    text-align: left;
+  }
+  .message img {
+    max-width: 100%;
+    border-radius: 12px;
+    margin-top: 8px;
+  }
+  #input-area {
+    display: flex;
+    padding: 12px;
+    background: #eee;
+    gap: 10px;
+    align-items: center;
+  }
+  #messageInput {
+    flex: 1;
+    padding: 10px;
+    font-size: 16px;
+    border-radius: 8px;
+    border: 1px solid #ccc;
+  }
+  #fileInput {
+    cursor: pointer;
+  }
+  button#sendBtn {
+    padding: 10px 22px;
+    font-size: 16px;
+    background-color: #1976d2;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.25s;
+  }
+  button#sendBtn:disabled {
+    background-color: #999;
+    cursor: not-allowed;
+  }
+</style>
 </head>
 <body>
-  <div id="chat"></div>
-  <div id="input">
-    <input id="messageInput" type="text" placeholder="Type your message..." />
-    <input id="fileInput" type="file" accept="image/*,application/pdf" />
-    <button id="sendBtn">Send</button>
-  </div>
 
-  <script>
-    const chat = document.getElementById('chat');
-    const input = document.getElementById('messageInput');
-    const fileInput = document.getElementById('fileInput');
-    const sendBtn = document.getElementById('sendBtn');
+<div id="chat"></div>
 
-    sendBtn.addEventListener('click', sendMessage);
-    input.addEventListener('keypress', (e) => {
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        sendMessage();
+<div id="input-area">
+  <input id="messageInput" type="text" placeholder="Type your message..." autocomplete="off" />
+  <input id="fileInput" type="file" accept="image/*,application/pdf" />
+  <button id="sendBtn">Send</button>
+</div>
+
+<script>
+  const chat = document.getElementById('chat');
+  const input = document.getElementById('messageInput');
+  const fileInput = document.getElementById('fileInput');
+  const sendBtn = document.getElementById('sendBtn');
+
+  // Helper: Scroll chat to bottom
+  function scrollChat() {
+    chat.scrollTop = chat.scrollHeight;
+  }
+
+  // Append a text message bubble
+  function appendMessage(sender, text) {
+    const msg = document.createElement('div');
+    msg.className = message ${sender};
+    msg.textContent = text;
+    chat.appendChild(msg);
+    scrollChat();
+  }
+
+  // Append an image bubble (for uploaded images or image URLs)
+  function appendImage(sender, imageUrl) {
+    const msg = document.createElement('div');
+    msg.className = message ${sender};
+    const img = document.createElement('img');
+    img.src = imageUrl;
+    img.alt = "Uploaded image";
+    msg.appendChild(img);
+    chat.appendChild(msg);
+    scrollChat();
+  }
+
+  // Append a file name bubble (for PDFs or other files)
+  function appendFileName(sender, filename) {
+    const msg = document.createElement('div');
+    msg.className = message ${sender};
+    msg.textContent = 📄 File uploaded: ${filename};
+    chat.appendChild(msg);
+    scrollChat();
+  }
+
+  // Send text message handler
+  async function sendMessage() {
+    const message = input.value.trim();
+    if (!message) return;
+    appendMessage('user', message);
+    input.value = '';
+    toggleInput(false);
+
+    try {
+      const response = await fetch('https://prosperglb.app.n8n.cloud/webhook/aichatbot', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: message }),
+      });
+
+      const data = await response.json();
+
+      // If bot returns a URL to an image, show image; else show text output
+      if (data.output && typeof data.output === 'string' && data.output.match(/^https?:\/\/.*\.(jpg|jpeg|png|gif|webp)$/i)) {
+        appendImage('bot', data.output);
+      } else {
+        appendMessage('bot', data.output || 'No response from bot');
       }
-    });
+    } catch (error) {
+      appendMessage('bot', '⚠ Error: Could not reach the server.');
+    } finally {
+      toggleInput(true);
+      input.focus();
+    }
+  }
 
-    // When a file is selected, send it immediately
-    fileInput.addEventListener('change', async () => {
-      if (fileInput.files.length === 0) return;
+  // Send file handler (triggered immediately after file selection)
+  async function sendFile(file) {
+    appendMessage('user', Uploading file: ${file.name});
+    toggleInput(false);
 
-      const file = fileInput.files[0];
-      appendMessage('user', Uploading file: ${file.name});
+    const formData = new FormData();
+    formData.append('file', file);
 
-      sendBtn.disabled = true;
-      input.disabled = true;
+    try {
+      const response = await fetch('https://prosperglb.app.n8n.cloud/webhook/aichatbot', {
+        method: 'POST',
+        body: formData,
+      });
 
-      try {
-        // Prepare form data to send file
-        const formData = new FormData();
-        formData.append('file', file);
+      const data = await response.json();
 
-        // You might want to adjust the endpoint to handle files specifically
-        const res = await fetch('https://prosperglb.app.n8n.cloud/webhook/aichatbot', {
-          method: 'POST',
-          body: formData,
-        });
-
-        const data = await res.json();
-
-        // If response includes image URL, display image, else show text
-        if (data.output && data.output.startsWith('http')) {
-          appendMessage('bot', '');
-          appendImage('bot', data.output);
-        } else {
-          appendMessage('bot', data.output || 'No response');
-        }
-      } catch (err) {
-        appendMessage('bot', '⚠ Error: Failed to upload file');
-      } finally {
-        sendBtn.disabled = false;
-        input.disabled = false;
-        fileInput.value = '';
-        input.focus();
+      // Check if bot returned an image URL
+      if (data.output && typeof data.output === 'string' && data.output.match(/^https?:\/\/.*\.(jpg|jpeg|png|gif|webp)$/i)) {
+        appendImage('bot', data.output);
+      } else if (data.output && typeof data.output === 'string') {
+        appendMessage('bot', data.output);
+      } else {
+        appendMessage('bot', 'File uploaded successfully.');
       }
-    });
-
-    async function sendMessage() {
-      const message = input.value.trim();
-      if (!message) return;
-
-      appendMessage('user', message);
-      input.value = '';
-      sendBtn.disabled = true;
-      fileInput.disabled = true;
-
-      try {
-        const res = await fetch('https://prosperglb.app.n8n.cloud/webhook/aichatbot', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ message: message }),
-        });
-
-        const data = await res.json();
-        appendMessage('bot', data.output || 'No response');
-      } catch (err) {
-        appendMessage('bot', '⚠ Error: Failed to reach the server');
-      } finally {
-        sendBtn.disabled = false;
-        fileInput.disabled = false;
-        input.focus();
-      }
+    } catch (error) {
+      appendMessage('bot', '⚠ Error: File upload failed.');
+    } finally {
+      toggleInput(true);
+      fileInput.value = '';
+      input.focus();
     }
+  }
 
-    function appendMessage(sender, text) {
-      const msg = document.createElement('div');
-      msg.className = message ${sender};
-      msg.textContent = text;
-      chat.appendChild(msg);
-      chat.scrollTop = chat.scrollHeight;
-    }
+  // Enable or disable inputs and buttons to avoid multiple sends
+  function toggleInput(enabled) {
+    sendBtn.disabled = !enabled;
+    input.disabled = !enabled;
+    fileInput.disabled = !enabled;
+  }
 
-    function appendImage(sender, imageUrl) {
-      const msg = document.createElement('div');
-      msg.className = message ${sender};
-      const img = document.createElement('img');
-      img.src = imageUrl;
-      msg.appendChild(img);
-      chat.appendChild(msg);
-      chat.scrollTop = chat.scrollHeight;
+  // Event listeners
+  sendBtn.addEventListener('click', sendMessage);
+
+  input.addEventListener('keypress', e => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      sendMessage();
     }
-  </script>
+  });
+
+  fileInput.addEventListener('change', () => {
+    if (fileInput.files.length > 0) {
+      sendFile(fileInput.files[0]);
+    }
+  });
+
+  // Focus input on load
+  input.focus();
+</script>
+
 </body>
 </html>
